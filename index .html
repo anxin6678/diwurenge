@@ -2,185 +2,289 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第五人格 2D P2P 联机版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>TT风语音聊天室</title>
     <style>
-        body { margin: 0; background: #1a1a1a; color: #fff; font-family: sans-serif; text-align: center; }
-        #setup-ui { padding: 20px; }
-        canvas { border: 4px solid #333; background: #222; display: none; margin: 10px auto; }
-        .btn { padding: 10px 20px; background: #8b0000; color: white; border: none; cursor: pointer; font-size: 16px; }
-        .btn:hover { background: #ff0000; }
-        #status { color: #ffcc00; margin: 10px; }
+        :root {
+            --bg-color: #12121a;
+            --panel-color: #1c1c28;
+            --accent-color: #7b2cbf;
+            --text-color: #ffffff;
+            --text-secondary: #8e8e93;
+            --seat-speaking: #00f5d4;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 主容器，适配手机与PC */
+        .room-container {
+            width: 100%;
+            max-width: 450px;
+            height: 100%;
+            background: radial-gradient(circle at top, #2c1a4d 0%, var(--bg-color) 70%);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* 头部状态栏 */
+        .room-header {
+            padding: 20px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .room-title h3 { font-size: 18px; font-weight: 600; }
+        .room-title p { font-size: 12px; color: var(--text-secondary); margin-top: 2px;}
+
+        /* 麦位区（8个麦位） */
+        .seats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px 10px;
+            padding: 20px 15px;
+        }
+        .seat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        .avatar-wrap {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid transparent;
+        }
+        /* 正在说话的光圈效果 */
+        .seat-item.speaking .avatar-wrap {
+            border-color: var(--seat-speaking);
+            box-shadow: 0 0 10px var(--seat-speaking);
+            animation: ripple 1.2s infinite ease-in-out;
+        }
+        .avatar-wrap img {
+            width: 47px;
+            height: 47px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .seat-index {
+            position: absolute;
+            bottom: -2px;
+            background: var(--accent-color);
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 10px;
+        }
+        .user-name {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            max-width: 65px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        /* 公屏聊天区 */
+        .chat-area {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            /* 丝滑滚动 */
+            -webkit-overflow-scrolling: touch; 
+        }
+        .msg-item {
+            background: rgba(255,255,255,0.05);
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            max-width: 85%;
+            align-self: flex-start;
+            line-height: 1.4;
+        }
+        .msg-item .sender { color: #17c3b2; font-weight: bold; margin-right: 5px;}
+        .msg-system {
+            background: rgba(234, 84, 85, 0.1);
+            color: #ea5455;
+            align-self: center;
+            font-size: 12px;
+        }
+
+        /* 底部控制栏 */
+        .bottom-bar {
+            padding: 15px;
+            background: rgba(28, 28, 40, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .input-box {
+            flex: 1;
+            background: rgba(255,255,255,0.08);
+            border: none;
+            padding: 12px 15px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+        .btn {
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+        }
+        .btn-icon.active { background: #ea5455; }
+
+        @keyframes ripple {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
     </style>
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-    <h1>第五人格 2D 联机网页版</h1>
-    
-    <div id="setup-ui">
-        <h3>第一步：选择你的阵营</h3>
-        <button class="btn" onclick="chooseRole('hunter')">成为监管者 (厂长)</button>
-        <button class="btn" onclick="chooseRole('survivor')">成为求生者 (园丁)</button>
-        
-        <br><br>
-        <h3>第二步：创建或加入房间</h3>
-        <p>你的联机ID: <span id="my-id">正在生成...</span></p>
-        <button class="btn" onclick="startHost()">创建房间 (作为房主)</button>
-        <br><br>
-        <input type="text" id="join-id" placeholder="输入房主的联机ID" style="padding: 10px; width: 200px;">
-        <button class="btn" onclick="joinRoom()">加入房间</button>
+<div class="room-container">
+    <div class="room-header">
+        <div class="room-title">
+            <h3>开黑语音开播中...</h3>
+            <p>ID: 98765432 · 105人在线</p>
+        </div>
+        <button class="btn" style="background:#ea5455;" onclick="leaveRoom()">退出</button>
     </div>
 
-    <div id="status"></div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="seats-grid" id="seatsGrid">
+        <div class="seat-item speaking">
+            <div class="avatar-wrap">
+                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=房主" alt="头像">
+                <span class="seat-index">房主</span>
+            </div>
+            <span class="user-name">大魔王</span>
+        </div>
+        <div class="seat-item">
+            <div class="avatar-wrap">
+                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=麦位2" alt="头像">
+                <span class="seat-index">2麦</span>
+            </div>
+            <span class="user-name">申请连麦</span>
+        </div>
+        </div>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        let peer, conn;
-        let role = 'survivor'; 
-        let isHost = false;
+    <div class="chat-area" id="chatArea">
+        <div class="msg-item msg-system">欢迎来到聊天室，请文明发言，禁止传播违规内容。</div>
+        <div class="msg-item"><span class="sender">玩家A:</span>有人来打王者吗？缺个辅助！</div>
+    </div>
 
-        // 游戏世界数据
-        let player = { x: 100, y: 100, size: 20, color: '#3399ff', speed: 4 };
-        let remotePlayer = { x: -100, y: -100, size: 24, color: '#ff3333', speed: 5 }; // 远端玩家
-        let cipher = { x: 400, y: 300, size: 40, progress: 0, completed: false };
+    <div class="bottom-bar">
+        <div class="btn-icon" id="micBtn" onclick="toggleMic()">🎤</div>
+        <input type="text" class="input-box" id="msgInput" placeholder="聊点什么吧..." onkeypress="handleKeyPress(event)">
+        <button class="btn" onclick="sendMsg()">发送</button>
+    </div>
+</div>
 
-        // 初始化 PeerJS
-        peer = new Peer();
-        peer.on('open', (id) => {
-            document.getElementById('my-id').innerText = id;
-        });
+<script>
+    // 初始化其余麦位
+    const grid = document.getElementById('seatsGrid');
+    for(let i=3; i<=8; i++) {
+        grid.innerHTML += `
+            <div class="seat-item">
+                <div class="avatar-wrap">
+                    <span style="color:var(--text-secondary); font-size:20px;">+</span>
+                    <span class="seat-index">${i}麦</span>
+                </div>
+                <span class="user-name">空位</span>
+            </div>
+        `;
+    }
 
-        // 阵营选择
-        function chooseRole(selected) {
-            role = selected;
-            if(role === 'hunter') {
-                player.color = '#ff3333';
-                player.speed = 5;
-                player.size = 24;
-            } else {
-                player.color = '#3399ff';
-                player.speed = 4;
-                player.size = 20;
-            }
-            document.getElementById('status').innerText = `已选择阵营：${role === 'hunter'?'监管者':'求生者'}`;
+    // 麦克风开关逻辑
+    let isMuted = true;
+    function toggleMic() {
+        isMuted = !isMuted;
+        const micBtn = document.getElementById('micBtn');
+        if(isMuted) {
+            micBtn.innerText = "🔇";
+            micBtn.classList.add('active');
+            // 这里调用底层的禁用麦克风流代码
+        } else {
+            micBtn.innerText = "🎤";
+            micBtn.classList.remove('active');
+            // 这里调用底层的启用麦克风流代码
         }
+    }
 
-        // 房主启动
-        function startHost() {
-            isHost = true;
-            document.getElementById('status').innerText = "房间已创建，等待求生者/监管者加入...";
-            peer.on('connection', (connection) => {
-                conn = connection;
-                setupConnection();
-            });
-            startGameLoop();
-        }
+    // 发送消息
+    function sendMsg() {
+        const input = document.getElementById('msgInput');
+        const text = input.value.trim();
+        if(!text) return;
 
-        // 玩家加入
-        function joinRoom() {
-            const targetId = document.getElementById('join-id').value;
-            if(!targetId) return alert("请输入房主ID！");
-            
-            document.getElementById('status').innerText = "正在连接房主...";
-            conn = peer.connect(targetId);
-            setupConnection();
-            startGameLoop();
-        }
+        const chatArea = document.getElementById('chatArea');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'msg-item';
+        msgDiv.innerHTML = `<span class="sender">我:</span>${text}`;
+        chatArea.appendChild(msgDiv);
+        
+        input.value = '';
+        // 自动滚动到底部
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
 
-        // 设置数据通道
-        function setupConnection() {
-            document.getElementById('setup-ui').style.display = 'none';
-            canvas.style.display = 'block';
-            document.getElementById('status').innerText = "联机成功！游戏开始！使用 WASD 或方向键移动。";
+    function handleKeyPress(e) {
+        if(e.key === 'Enter') sendMsg();
+    }
 
-            conn.on('data', (data) => {
-                // 接收对方的位置和状态
-                remotePlayer.x = data.x;
-                remotePlayer.y = data.y;
-                cipher.progress = data.cipherProgress;
-                cipher.completed = data.cipherCompleted;
-            });
-        }
+    function leaveRoom() {
+        alert('已退出房间');
+    }
 
-        // 键盘监听
-        let keys = {};
-        window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-
-        // 核心游戏循环
-        function startGameLoop() {
-            update();
-            render();
-            requestAnimationFrame(startGameLoop);
-        }
-
-        function update() {
-            // 控制自己移动
-            if (keys['w'] || keys['arrowup']) player.y -= player.speed;
-            if (keys['s'] || keys['arrowdown']) player.y += player.speed;
-            if (keys['a'] || keys['arrowleft']) player.x -= player.speed;
-            if (keys['d'] || keys['arrowright']) player.x += player.speed;
-
-            // 边界碰撞
-            player.x = Math.max(player.size, Math.min(canvas.width - player.size, player.x));
-            player.y = Math.max(player.size, Math.min(canvas.height - player.size, player.y));
-
-            // 求生者修机逻辑
-            if (role === 'survivor' && !cipher.completed) {
-                let dist = Math.hypot(player.x - cipher.x, player.y - cipher.y);
-                if (dist < 50) {
-                    cipher.progress += 0.2; // 正在修机
-                    if (cipher.progress >= 100) cipher.completed = true;
-                }
-            }
-
-            // 监管者抓人判定 (简单距离碰撞)
-            let huntDist = Math.hypot(player.x - remotePlayer.x, player.y - remotePlayer.y);
-            if (huntDist < (player.size + remotePlayer.size)) {
-                if(role === 'hunter') {
-                    document.getElementById('status').innerText = "你抓到了求生者！监管者胜利！";
-                }
-            }
-
-            // 发送自己的位置给对方
-            if (conn && conn.open) {
-                conn.send({
-                    x: player.x,
-                    y: player.y,
-                    cipherProgress: cipher.progress,
-                    cipherCompleted: cipher.completed
-                });
-            }
-        }
-
-        function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // 1. 画密码机
-            ctx.fillStyle = cipher.completed ? '#00ff00' : '#ffff00';
-            ctx.fillRect(cipher.x - cipher.size/2, cipher.y - cipher.size/2, cipher.size, cipher.size);
-            ctx.fillStyle = '#fff';
-            ctx.fillText(cipher.completed ? "密码机已破译" : `破译进度: ${Math.floor(cipher.progress)}%`, cipher.x - 40, cipher.y - 30);
-
-            // 2. 画自己
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
-            ctx.fillStyle = player.color;
-            ctx.fill();
-            ctx.closePath();
-            ctx.fillText("你", player.x - 5, player.y - player.size - 5);
-
-            // 3. 画对手
-            ctx.beginPath();
-            ctx.arc(remotePlayer.x, remotePlayer.y, remotePlayer.size, 0, Math.PI * 2);
-            ctx.fillStyle = remotePlayer.color;
-            ctx.fill();
-            ctx.closePath();
-            ctx.fillText("对手", remotePlayer.x - 10, remotePlayer.y - remotePlayer.size - 5);
-        }
-    </script>
+    // 解决移动端 H5 100vh 被微信/浏览器工具栏遮挡的Bug
+    function resetHeight(){
+        document.querySelector('.room-container').style.height = window.innerHeight + 'px';
+    }
+    window.addEventListener('resize', resetHeight);
+    resetHeight();
+</script>
 </body>
 </html>
